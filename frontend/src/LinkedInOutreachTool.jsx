@@ -72,29 +72,39 @@ export default function LinkedInOutreachTool() {
     }
   }
 
-  const handleSendMessage = async () => {
-    try {
-      setLoading(true)
-      setError("")
-      const token = localStorage.getItem("access_token")
-      const response = await fetch(`${API_BASE_URL}/api/send-message`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ message, recipientId: "default" }),
-      })
+ const handleSendMessage = async () => {
+  try {
+    setLoading(true)
+    setError("")
 
-      if (!response.ok) throw new Error("Failed to send message")
+    const token = urlParams.get("token")
+    const userId = urlParams.get("user_id")
 
-      setStep("success")
-    } catch (err) {
-      setError("Failed to send message: " + err.message)
-    } finally {
-      setLoading(false)
-    }
+    // Store values in localStorage
+    localStorage.setItem("access_token", token)
+    localStorage.setItem("user_id", userId)
+
+    const recipientId = localStorage.getItem("user_id")
+
+    const response = await fetch(`${API_BASE_URL}/api/send-message`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ message, recipientId }),
+    })
+
+    if (!response.ok) throw new Error("Failed to send message")
+
+    setStep("success")
+  } catch (err) {
+    setError("Failed to send message: " + err.message)
+  } finally {
+    setLoading(false)
   }
+}
+
 
   const copyToClipboard = async () => {
     try {

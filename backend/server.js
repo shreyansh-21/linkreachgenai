@@ -25,8 +25,8 @@ const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 // Start LinkedIn OAuth
 app.get('/auth/linkedin', (req, res) => {
-  const authUrl = `https://api.unipile.com/v1/users/connect`;
-  res.json({ authUrl });
+  const redirectURL = `https://api.unipile.com/v1/users/connect?redirect_uri=${process.env.LINKEDIN_CALLBACK_URL}&provider=linkedin`;
+  res.redirect(redirectURL);
 });
 
 // Handle OAuth callback
