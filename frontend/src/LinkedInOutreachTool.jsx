@@ -19,9 +19,12 @@ export default function LinkedInOutreachTool() {
   const API_BASE_URL = "http://localhost:5000"
 
   // API Integration Functions
-  const handleLinkedInAuth = () => {
-    window.location.href = `${API_BASE_URL}/auth/linkedin`
-  }
+const handleLinkedInAuth = () => {
+  // ✅ Replace with your actual values
+  localStorage.setItem("access_token", "your_unipile_token_here");
+  localStorage.setItem("user_id", "your_unipile_user_id_here");
+  window.location.reload();
+};
 
   const loadProfile = async () => {
     try {
@@ -72,18 +75,12 @@ export default function LinkedInOutreachTool() {
     }
   }
 
- const handleSendMessage = async () => {
+const handleSendMessage = async () => {
   try {
     setLoading(true)
     setError("")
 
-    const token = urlParams.get("token")
-    const userId = urlParams.get("user_id")
-
-    // Store values in localStorage
-    localStorage.setItem("access_token", token)
-    localStorage.setItem("user_id", userId)
-
+    const token = localStorage.getItem("access_token")
     const recipientId = localStorage.getItem("user_id")
 
     const response = await fetch(`${API_BASE_URL}/api/send-message`, {
@@ -104,6 +101,7 @@ export default function LinkedInOutreachTool() {
     setLoading(false)
   }
 }
+
 
 
   const copyToClipboard = async () => {

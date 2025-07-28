@@ -26,7 +26,7 @@ const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 // Start LinkedIn OAuth
 app.get('/auth/linkedin', (req, res) => {
-  const redirectURL = `https://api.unipile.com/v1/users/connect?redirect_uri=${process.env.LINKEDIN_CALLBACK_URL}&provider=linkedin`;
+  const redirectURL = `https://api14.unipile.com:14433/v1/users/connect?redirect_uri=${process.env.LINKEDIN_CALLBACK_URL}&provider=linkedin`;
   res.redirect(redirectURL);
 });
 
@@ -36,7 +36,7 @@ app.get('/auth/callback', async (req, res) => {
     const { code } = req.query;
     
     // Exchange code for access token with Unipile
-    const response = await axios.post('https://api.unipile.com/v1/users/connect', {
+    const response = await axios.post('https://api14.unipile.com:14433/v1/users/connect', {
       code,
       provider: 'linkedin',
       redirect_uri: process.env.REDIRECT_URI
@@ -70,7 +70,7 @@ app.get('/api/profile', async (req, res) => {
     }
 
     // Fetch profile from Unipile
-    const response = await axios.get('https://api.unipile.com/v1/users/me', {
+    const response = await axios.get('https://api14.unipile.com:14433/v1/users/me', {
       headers: {
         'Authorization': `Bearer ${token}`,
         'X-API-KEY': process.env.UNIPILE_API_KEY
@@ -133,7 +133,7 @@ app.post('/api/send-message', async (req, res) => {
     const token = authorization?.split(' ')[1];
 
     // Send message via Unipile
-    const response = await axios.post('https://api.unipile.com/v1/messages', {
+    const response = await axios.post('https://api14.unipile.com:14433/v1/messages', {
       provider: 'linkedin',
       recipient_id: recipientId,
       text: message
