@@ -33,26 +33,26 @@ const handleLinkedInAuth = () => {
 
   const loadProfile = async () => {
     try {
-      setLoading(true)
-      setError("")
-      const token = localStorage.getItem("access_token")
-      const response = await fetch(`${API_BASE_URL}/api/profile`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-      })
+      const response = await fetch(`${API_BASE_URL}/api/profile`);
 
-      if (!response.ok) throw new Error("Failed to fetch profile")
+      if (!response.ok) {
+        throw new Error("Failed to load profile");
+      }
 
-      const data = await response.json()
-      setProfile(data.profile)
+      const data = await response.json();
+      console.log("✅ LinkedIn profile data:", data);
+
+      // Example: move to step 2 if profile exists
+      if (data.success && data.data?.length > 0) {
+        setStep("message");
+      } else {
+        console.warn("⚠️ No LinkedIn account found");
+      }
     } catch (err) {
-      setError("Failed to load profile: " + err.message)
-    } finally {
-      setLoading(false)
+      console.error("❌ Error fetching profile:", err.message);
     }
-  }
+  };
+
 
   const handleGenerateMessage = async () => {
     try {

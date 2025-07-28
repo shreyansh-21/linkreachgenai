@@ -86,7 +86,7 @@ app.get(
 app.get('/api/profile', async (req, res) => {
   try {
     const response = await axios.get(
-      `${process.env.UNIPILE_BASE_URL}/api/v1/profiles`,
+      `${process.env.UNIPILE_BASE_URL}/api/v1/accounts`,
       {
         headers: {
           'X-API-KEY': process.env.UNIPILE_API_KEY,
@@ -94,12 +94,17 @@ app.get('/api/profile', async (req, res) => {
         },
       }
     );
-    res.json(response.data);
+
+    res.json({
+      success: true,
+      data: response.data,
+    });
   } catch (err) {
-    console.error('Failed to fetch profile:', err.message);
-    res.status(500).json({ error: 'Profile fetch failed' });
+    console.error('❌ Failed to fetch profile:', err.message);
+    res.status(500).json({ error: 'Profile fetch failed', details: err.message });
   }
 });
+
 
 // ✅ Send Message
 app.post('/api/send-message', async (req, res) => {
