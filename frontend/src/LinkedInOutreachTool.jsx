@@ -20,11 +20,16 @@ export default function LinkedInOutreachTool() {
 
   // API Integration Functions
 const handleLinkedInAuth = () => {
-  // ✅ Replace with your actual values
-  localStorage.setItem("access_token", "your_unipile_token_here");
-  localStorage.setItem("user_id", "your_unipile_user_id_here");
-  window.location.reload();
+  const dummyToken = "your_unipile_token_here";
+  const dummyUserId = "your_unipile_user_id_here";
+
+  const newUrl = new URL(window.location.href);
+  newUrl.searchParams.set("token", dummyToken);
+  newUrl.searchParams.set("user_id", dummyUserId);
+
+  window.location.href = newUrl.toString(); // full reload with params
 };
+
 
   const loadProfile = async () => {
     try {
@@ -123,21 +128,23 @@ const handleSendMessage = async () => {
   }
 
   // Handle OAuth callback on component mount
-  useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search)
-    const token = urlParams.get("token")
-    const errorParam = urlParams.get("error")
+useEffect(() => {
+  const urlParams = new URLSearchParams(window.location.search);
+  const token = urlParams.get("token");
+  const userId = urlParams.get("user_id");
+  const errorParam = urlParams.get("error");
 
-    if (token) {
-      localStorage.setItem("access_token", token)
-      setStep("profile")
-      loadProfile()
-      // Clean URL
-      window.history.replaceState({}, document.title, window.location.pathname)
-    } else if (errorParam) {
-      setError("Authentication failed")
-    }
-  }, [])
+  if (token && userId) {
+    localStorage.setItem("access_token", token);
+    localStorage.setItem("user_id", userId);
+    setStep("profile");
+    loadProfile();
+    window.history.replaceState({}, document.title, window.location.pathname);
+  } else if (errorParam) {
+    setError("Authentication failed");
+  }
+}, []);
+
 
   // Step Indicator Component
   const StepIndicator = () => {

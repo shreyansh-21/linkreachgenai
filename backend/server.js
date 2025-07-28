@@ -1,113 +1,159 @@
-// ================================
-// BACKEND API SETUP (server.js)
-// ================================
+// server.js
 import express from 'express';
 import cors from 'cors';
-import axios from 'axios';
 import dotenv from 'dotenv';
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import session from 'express-session';
+import passport from 'passport';
+import { Strategy as LinkedInStrategy } from 'passport-linkedin-oauth2';
+import jwt from 'jsonwebtoken';
+import axios from 'axios';
 
 dotenv.config();
 
 const app = express();
-const PORT = process.env.PORT || 5000;
-const UNIPILE_API_KEY = process.env.UNIPILE_API_KEY;
-const UNIPILE_BASE_URL = process.env.UNIPILE_BASE_URL; // example: https://api14.unipile.com:14433
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-
-app.use(cors());
+app.use(cors({ origin: process.env.FRONTEND_URL, credentials: true }));
 app.use(express.json());
 
-// ================================
-// 1. PROFILE API ROUTE
-// ================================
+// ✅ Session setup for passport
+app.use(
+  session({
+    secret: process.env.SESSION_SECRET || 'defaultsecret',
+    resave: false,
+    saveUninitialized: true,
+  })
+);
+
+app.use(passport.initialize());
+app.use(passport.session());
+
+// ✅ Passport LinkedIn strategy
+passport.serializeUser((user, done) => done(null, user));
+passport.deserializeUser((user, done) => done(null, user));
+
+passport.use(
+  new LinkedInStrategy(
+    {
+      clientID: process.env.LINKEDIN_CLIENT_ID,
+      clientSecret: process.env.LINKEDIN_CLIENT_SECRET,
+      callbackURL: process.env.LINKEDIN_CALLBACK_URL,
+      scope: ['r_liteprofile', 'r_emailaddress'],
+    },
+    function (accessToken, refreshToken, profile, done) {
+      const user = {
+        id: profile.id,
+        displayName: profile.displayName,
+        email: profile.emails?.[0]?.value || '',
+      };
+      return done(null, user);
+    }
+  )
+);
+
+// ✅ LinkedIn Auth Routes
+app.get('/auth/linkedin', passport.authenticate('linkedin', { state: true }));
+
+app.get(
+  '/auth/linkedin/callback',
+  passport.authenticate('linkedin', {
+    session: false,
+    failureRedirect: `${process.env.FRONTEND_URL}?error=linkedin_auth_failed`,
+  }),
+  (req, res) => {
+    try {
+      const user = req.user;
+      const token = jwt.sign(
+        {
+          id: user.id,
+          email: user.email,
+          name: user.displayName,
+        },
+        process.env.JWT_SECRET,
+        { expiresIn: '1h' }
+      );
+
+      // Redirect with token and userId
+      return res.redirect(
+        `${process.env.FRONTEND_URL}?token=${token}&user_id=${user.id}`
+      );
+    } catch (err) {
+      console.error('LinkedIn callback error:', err.message);
+      return res.redirect(`${process.env.FRONTEND_URL}?error=callback_failed`);
+    }
+  }
+);
+
+// ✅ Protected Route Example: Profile
 app.get('/api/profile', async (req, res) => {
   try {
-    const response = await axios.get(`${UNIPILE_BASE_URL}/api/v1/users/me`, {
-      headers: {
-        'X-API-KEY': UNIPILE_API_KEY,
+    const response = await axios.get(
+      `${process.env.UNIPILE_BASE_URL}/api/v1/profiles`,
+      {
+        headers: {
+          'X-API-KEY': process.env.UNIPILE_API_KEY,
+          Accept: 'application/json',
+        },
       }
-    });
-
-    const data = response.data;
-
-    const profile = {
-      name: data.name,
-      jobTitle: data.job_title,
-      company: data.company,
-      industry: data.industry,
-      profilePicture: data.profile_picture,
-    };
-
-    res.json({ profile });
-  } catch (error) {
-    console.error('❌ Profile fetch error:', error.message);
-    res.status(500).json({ error: 'Failed to fetch profile' });
+    );
+    res.json(response.data);
+  } catch (err) {
+    console.error('Failed to fetch profile:', err.message);
+    res.status(500).json({ error: 'Profile fetch failed' });
   }
 });
 
-// ================================
-// 2. AI MESSAGE GENERATION (Gemini)
-// ================================
-app.post('/api/generate-message', async (req, res) => {
-  try {
-    const { profile } = req.body;
-
-    const prompt = `Write a professional LinkedIn outreach message to ${profile.name}, who works as a ${profile.jobTitle} at ${profile.company} in the ${profile.industry} industry.
-
-Keep it:
-- Under 100 words
-- Professional but friendly
-- Focused on potential collaboration
-- Avoid pushy language
-
-Return just the message.`;
-
-    const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
-    const result = await model.generateContent(prompt);
-    const text = await result.response.text();
-
-    res.json({ message: text });
-  } catch (error) {
-    console.error('❌ Gemini error:', error.message);
-    res.status(500).json({ error: 'Failed to generate message' });
-  }
-});
-
-// ================================
-// 3. SEND MESSAGE ROUTE (Unipile)
-// ================================
+// ✅ Send Message
 app.post('/api/send-message', async (req, res) => {
+  const { message, recipientId } = req.body;
+
   try {
-    const { message, recipientId } = req.body;
-
-    const response = await axios.post(`${UNIPILE_BASE_URL}/api/v1/messages`, {
-      provider: 'linkedin',
-      recipient_id: recipientId,
-      text: message
-    }, {
-      headers: {
-        'X-API-KEY': UNIPILE_API_KEY
+    const response = await axios.post(
+      `${process.env.UNIPILE_BASE_URL}/api/v1/messages`,
+      {
+        content: message,
+        recipientId,
+      },
+      {
+        headers: {
+          'X-API-KEY': process.env.UNIPILE_API_KEY,
+          Accept: 'application/json',
+        },
       }
-    });
+    );
 
-    res.json({ success: true, messageId: response.data.id });
-  } catch (error) {
-    console.error('❌ Send message error:', error.message);
-    res.status(500).json({ error: 'Failed to send message' });
+    res.json({ success: true, data: response.data });
+  } catch (err) {
+    console.error('Message sending error:', err.message);
+    res.status(500).json({ error: 'Message send failed' });
   }
 });
 
-// ================================
-// 4. ROOT CHECK
-// ================================
-app.get('/', (req, res) => {
-  res.send('💡 Server is running');
+// ✅ Gemini Message Generation
+app.post('/api/generate-message', async (req, res) => {
+  const { prompt } = req.body;
+
+  try {
+    const geminiResponse = await axios.post(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${process.env.GEMINI_API_KEY}`,
+      {
+        contents: [{ parts: [{ text: prompt }] }],
+      }
+    );
+
+    const message = geminiResponse.data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    res.json({ message });
+  } catch (err) {
+    console.error('Gemini generation failed:', err.message);
+    res.status(500).json({ error: 'AI message generation failed' });
+  }
 });
 
-// ================================
-// 5. START SERVER
-// ================================
+// ✅ Root
+app.get('/', (req, res) => {
+  res.send('🚀 Server is running');
+});
+
+// ✅ Start Server
+const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
-  console.log(`✅ Server running on http://localhost:${PORT}`);
+  console.log(`🌐 Server running at http://localhost:${PORT}`);
 });
