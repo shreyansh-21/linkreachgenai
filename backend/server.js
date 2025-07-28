@@ -8,7 +8,7 @@ import { Strategy as LinkedInStrategy } from 'passport-linkedin-oauth2';
 import jwt from 'jsonwebtoken';
 import axios from 'axios';
 import { GoogleGenerativeAI } from "@google/generative-ai";
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+
 
 dotenv.config();
 
@@ -156,18 +156,14 @@ app.post('/api/send-message', async (req, res) => {
 });
 
 // ✅ Gemini Message Generation
-app.post("/api/generate-message", async (req, res) => {
+app.post('/api/generate-message', async (req, res) => {
   try {
     const { profile } = req.body;
 
-    if (!profile || !profile.name) {
-      return res.status(400).json({ error: "Missing profile data" });
-    }
-
     const prompt = `
-      Write a professional LinkedIn outreach message to ${profile.name}, 
-      who works as a ${profile.jobTitle || "professional"} at ${profile.company || "a company"} 
-      in the ${profile.industry || "relevant"} industry.
+      Write a professional LinkedIn outreach message to ${profile.name},
+      who works as a professional at a company
+      in the relevant industry.
 
       Keep it:
       - Under 100 words
@@ -178,18 +174,22 @@ app.post("/api/generate-message", async (req, res) => {
       Return just the message.
     `;
 
-    console.log("🟡 Gemini prompt:", prompt);
-
+    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
     const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-    const result = await model.generateContent(prompt);
-    const messageText = await result.response.text();
 
-    res.json({ success: true, message: messageText });
+    const result = await model.generateContent(prompt);
+    const text = await result.response.text();
+
+    res.json({ success: true, message: text });
   } catch (error) {
-    console.error("❌ Gemini error:", error);
-    res.status(500).json({ error: "AI message generation failed" });
+    console.error("❌ Gemini error:", error.message);
+    if (error.response?.data) {
+      console.error("📦 Gemini error response:", error.response.data);
+    }
+    res.status(500).json({ error: "Failed to generate message" });
   }
 });
+
 
 
 // ✅ Root
