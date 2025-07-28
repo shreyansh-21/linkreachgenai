@@ -1,4 +1,3 @@
-"use client"
 
 import { useState, useEffect } from "react"
 import { Linkedin, Copy, Send, CheckCircle, AlertCircle, Loader2, ArrowLeft, Sparkles, User } from "lucide-react"
