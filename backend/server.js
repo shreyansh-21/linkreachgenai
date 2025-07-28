@@ -83,27 +83,46 @@ app.get(
 );
 
 // ✅ Protected Route Example: Profile
-app.get('/api/profile', async (req, res) => {
+app.get("/api/profile", async (req, res) => {
   try {
     const response = await axios.get(
       `${process.env.UNIPILE_BASE_URL}/api/v1/accounts`,
       {
         headers: {
-          'X-API-KEY': process.env.UNIPILE_API_KEY,
-          Accept: 'application/json',
-        },
+          "X-API-KEY": process.env.UNIPILE_API_KEY,
+          "Accept": "application/json"
+        }
       }
     );
 
-    res.json({
+    const accounts = response.data;
+
+    if (!Array.isArray(accounts) || accounts.length === 0) {
+      return res.status(404).json({ error: "No accounts found." });
+    }
+
+    const linkedinAccount = accounts.find(acc => acc.provider === "LINKEDIN");
+
+    if (!linkedinAccount) {
+      return res.status(404).json({ error: "No LinkedIn account found." });
+    }
+
+    return res.status(200).json({
       success: true,
-      data: response.data,
+      profile: linkedinAccount
     });
-  } catch (err) {
-    console.error('❌ Failed to fetch profile:', err.message);
-    res.status(500).json({ error: 'Profile fetch failed', details: err.message });
+
+  } catch (error) {
+    console.error("❌ Error fetching profile:", error.response?.data || error.message);
+    res.status(500).json({
+      success: false,
+      error: error.response?.data || error.message
+    });
   }
 });
+
+
+
 
 
 // ✅ Send Message
