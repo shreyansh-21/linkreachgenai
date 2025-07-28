@@ -2,11 +2,12 @@
 // BACKEND API SETUP (server.js)
 // ================================
 
-const express = require('express');
-const cors = require('cors');
-const axios = require('axios');
-const { GoogleGenerativeAI } = require('@google/generative-ai');
-require('dotenv').config();
+import express from 'express';
+import cors from 'cors';
+import axios from 'axios';
+import dotenv from 'dotenv';
+import { GoogleGenerativeAI } from '@google/generative-ai';
+dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -154,104 +155,3 @@ app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
 
-// ================================
-// FRONTEND API INTEGRATION (api.js)
-// ================================
-
-// Create this file in your React src folder
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
-
-class ApiService {
-  constructor() {
-    this.token = localStorage.getItem('access_token');
-  }
-
-  setToken(token) {
-    this.token = token;
-    localStorage.setItem('access_token', token);
-  }
-
-  getHeaders() {
-    return {
-      'Content-Type': 'application/json',
-      ...(this.token && { 'Authorization': `Bearer ${this.token}` })
-    };
-  }
-
-  // 1. Start LinkedIn OAuth
-  async startLinkedInAuth() {
-    try {
-      const response = await fetch(`${API_BASE_URL}/auth/linkedin`);
-      const data = await response.json();
-      
-      // Redirect user to LinkedIn OAuth
-      window.location.href = data.authUrl;
-    } catch (error) {
-      console.error('Auth start error:', error);
-      throw new Error('Failed to start authentication');
-    }
-  }
-
-  // 2. Fetch user profile
-  async fetchProfile() {
-    try {
-      const response = await fetch(`${API_BASE_URL}/api/profile`, {
-        headers: this.getHeaders()
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch profile');
-      }
-
-      const data = await response.json();
-      return data.profile;
-    } catch (error) {
-      console.error('Profile fetch error:', error);
-      throw error;
-    }
-  }
-
-  // 3. Generate AI message
-  async generateMessage(profile) {
-    try {
-      const response = await fetch(`${API_BASE_URL}/api/generate-message`, {
-        method: 'POST',
-        headers: this.getHeaders(),
-        body: JSON.stringify({ profile })
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to generate message');
-      }
-
-      const data = await response.json();
-      return data.message;
-    } catch (error) {
-      console.error('Message generation error:', error);
-      throw error;
-    }
-  }
-
-  // 4. Send message
-  async sendMessage(message, recipientId = 'default') {
-    try {
-      const response = await fetch(`${API_BASE_URL}/api/send-message`, {
-        method: 'POST',
-        headers: this.getHeaders(),
-        body: JSON.stringify({ message, recipientId })
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to send message');
-      }
-
-      const data = await response.json();
-      return data;
-    } catch (error) {
-      console.error('Send message error:', error);
-      throw error;
-    }
-  }
-}
-
-export default new ApiService();
