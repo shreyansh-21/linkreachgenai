@@ -5,7 +5,7 @@
 const express = require('express');
 const cors = require('cors');
 const axios = require('axios');
-const OpenAI = require('openai');
+const { GoogleGenerativeAI } = require('@google/generative-ai');
 require('dotenv').config();
 
 const app = express();
@@ -15,10 +15,9 @@ const PORT = process.env.PORT || 5000;
 app.use(cors());
 app.use(express.json());
 
-// Initialize OpenAI
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY
-});
+// Initialize Gemini AI client
+
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 // ================================
 // 1. LINKEDIN OAUTH ROUTES
@@ -100,28 +99,24 @@ app.post('/api/generate-message', async (req, res) => {
   try {
     const { profile } = req.body;
 
-    const prompt = `Write a professional LinkedIn outreach message to ${profile.name} who works as ${profile.jobTitle} at ${profile.company} in the ${profile.industry} industry. 
+    const prompt = `Write a professional LinkedIn outreach message to ${profile.name} who works as ${profile.jobTitle} at ${profile.company} in the ${profile.industry} industry.
 
-    Keep it:
-    - Under 100 words
-    - Professional but friendly
-    - Focused on potential collaboration
-    - No pushy sales language
-    
-    Just return the message, no extra formatting.`;
+Keep it:
+- Under 100 words
+- Professional but friendly
+- Focused on potential collaboration
+- No pushy sales language
 
-    const completion = await openai.chat.completions.create({
-      model: "gpt-3.5-turbo",
-      messages: [{ role: "user", content: prompt }],
-      max_tokens: 150,
-      temperature: 0.7
-    });
+Just return the message, no extra formatting.`;
 
-    const message = completion.choices[0].message.content.trim();
-    
+    const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    const message = response.text();
+
     res.json({ message });
   } catch (error) {
-    console.error('OpenAI error:', error);
+    console.error('Gemini error:', error.message);
     res.status(500).json({ error: 'Failed to generate message' });
   }
 });
