@@ -1,7 +1,8 @@
 <!-- Animated Header -->
 <img src="https://readme-typing-svg.herokuapp.com?font=Fira+Code&pause=1000&color=FFFFFF&size=22&center=false&vCenter=true&width=500&lines=AI-powered+LinkedIn+Outreach+Tool;Generate+and+Send+Messages+Effortlessly" />
 
-<h1>LinkedIn Outreach AI Tool</h1>
+<h1> <img src="linkedinlogo.png" alt="LinkedIn Logo" width="50" height="50" />
+LinkedIn Outreach AI Tool</h1>
 
 <p>
 A full-stack AI-based outreach assistant that connects with a LinkedIn profile using OAuth, fetches profile data, generates a personalized message using Google’s Gemini model, and sends it via LinkedIn messaging through the Unipile API.
