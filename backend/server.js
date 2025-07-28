@@ -85,8 +85,10 @@ app.get(
 // ✅ Protected Route Example: Profile
 app.get("/api/profile", async (req, res) => {
   try {
+    const accountId = "Pqm7m98oStqEFVUnMRYyug";
+
     const response = await axios.get(
-      `${process.env.UNIPILE_BASE_URL}/api/v1/accounts`,
+      `${process.env.UNIPILE_BASE_URL}/api/v1/accounts/${accountId}`,
       {
         headers: {
           "X-API-KEY": process.env.UNIPILE_API_KEY,
@@ -95,33 +97,35 @@ app.get("/api/profile", async (req, res) => {
       }
     );
 
-    const accounts = response.data;
+    const profile = response.data;
 
-    if (!Array.isArray(accounts) || accounts.length === 0) {
-      return res.status(404).json({ error: "No accounts found." });
-    }
+    // Log to confirm structure
+    console.log("✅ Unipile raw response:", profile);
 
-    const linkedinAccount = accounts.find(acc => acc.provider === "LINKEDIN");
-
-    if (!linkedinAccount) {
-      return res.status(404).json({ error: "No LinkedIn account found." });
+    // ✅ Correct check: type instead of provider
+    if (!profile || profile.type?.toLowerCase() !== "linkedin") {
+      return res.status(404).json({ error: "LinkedIn profile not found." });
     }
 
     return res.status(200).json({
       success: true,
-      profile: linkedinAccount
+      profile: {
+        id: profile.id,
+        name: profile.name,
+        username: profile.connection_params?.im?.username || "Unknown",
+        publicIdentifier: profile.connection_params?.im?.publicIdentifier || null,
+        linkedInId: profile.connection_params?.im?.id || null
+      }
     });
 
   } catch (error) {
-    console.error("❌ Error fetching profile:", error.response?.data || error.message);
+    console.error("❌ Error fetching profile from Unipile:", error.response?.data || error.message);
     res.status(500).json({
       success: false,
       error: error.response?.data || error.message
     });
   }
 });
-
-
 
 
 
